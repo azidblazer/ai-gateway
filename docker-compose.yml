@@ -39,7 +39,7 @@ services:
 
   # LiteLLM Proxy - AI Gateway with budget tracking
   litellm:
-    image: ghcr.io/berriai/litellm:v1.82.3-stable
+    image: ghcr.io/berriai/litellm:v1.83.10-stable
     container_name: chat-litellm
     restart: unless-stopped
     depends_on:
@@ -88,7 +88,7 @@ services:
 
   # OpenWebUI - Chat Frontend
   openwebui:
-    image: ghcr.io/open-webui/open-webui:v0.8.10
+    image: ghcr.io/open-webui/open-webui:v0.9.2
     container_name: chat-openwebui
     restart: unless-stopped
     depends_on:
