@@ -6,7 +6,7 @@ Built for organizations (universities, enterprises) that need to provide employe
 
 ## Features
 
-- **Multi-provider AI access** — Anthropic, OpenAI, Google Vertex AI, Azure OpenAI (all configurable)
+- **Multi-provider AI access** — Anthropic, OpenAI, Google AI Studio (Gemini), Azure OpenAI (all configurable)
 - **Per-user budget tracking** — $5/week per user (configurable), enforced at the database level
 - **Usage dashboard** — Custom `/dashboard` page showing each user's spend, model usage breakdown, and weekly budget progress
 - **AI coaching** — Optional personalized tips analyzing conversation patterns and spending to help users get more value from their budget
@@ -50,8 +50,8 @@ Built for organizations (universities, enterprises) that need to provide employe
 |---------|-------|---------|
 | postgres | postgres:16-alpine | Database for OpenWebUI + LiteLLM |
 | redis | redis:7-alpine | WebSocket manager, LiteLLM cache, router state |
-| litellm | ghcr.io/berriai/litellm:v1.82.3-stable | AI gateway, budget tracking, usage monitoring |
-| openwebui | ghcr.io/open-webui/open-webui:v0.8.10 | Chat UI with SSO |
+| litellm | ghcr.io/berriai/litellm:v1.90.0 | AI gateway, budget tracking, usage monitoring |
+| openwebui | ghcr.io/open-webui/open-webui:v0.10.2 | Chat UI with SSO |
 | dashboard | ./dashboard (custom build) | Usage dashboard with feedback form |
 | nginx | nginx:1.28-alpine | SSL termination, domain routing |
 | tika | apache/tika:latest-full | Document parsing for file uploads |
@@ -130,6 +130,7 @@ To change the default budget amount, update these three places:
 | `0 3 * * *` | `scripts/cleanup-spendlogs.sh` | Delete SpendLogs >90d, null messages >7d |
 
 Update the `COMPOSE_DIR` variable in each script to match your installation path.
+Script logs are written to `<COMPOSE_DIR>/logs/` (created automatically, gitignored).
 
 ## Configuration Files
 
@@ -164,6 +165,15 @@ Key files:
 - `dashboard/api/feedback.py` — Feedback form endpoint
 - `dashboard/services/coaching.py` — AI coaching pipeline
 
+### Moving the Database to Its Own Server
+
+The bundled PostgreSQL container is the right default, but if you outgrow it (managed
+backups, HA, Kubernetes prep), see **[docs/external-database.md](docs/external-database.md)**
+— a step-by-step migration guide including the hard-won lessons from our own production
+move: why database latency matters more than anything else (our first attempt made the
+app 10–25× slower and was rolled back in a day), the budget trigger you must recreate,
+and the maintenance-script traps that fail silently.
+
 ### Performance Tuning
 
 The default settings are optimized for ~1000 concurrent users on a 6-core / 16GB RAM VM. Key tuning parameters:
@@ -194,6 +204,46 @@ See `kubernetes/ai-gateway/values.yaml` for configuration options.
 - **Webhook alerts**: Set `MONITOR_WEBHOOK_URL` in `.env` to receive alerts via Slack, Teams, etc.
 - **Prometheus metrics**: LiteLLM exposes `/metrics` (blocked externally, available on Docker network)
 - **Performance diagnostics**: `scripts/diagnose-performance.sh` generates a detailed report
+
+### Prometheus + Grafana Stack (optional)
+
+The `monitoring/` directory contains a full Prometheus + Grafana + node_exporter
+stack for capacity planning: pre-provisioned dashboards (host, containers,
+LiteLLM application metrics, capacity planning), alert rules, and exporters for
+container stats and DB user counts. It runs as a separate compose stack:
+
+```bash
+cd monitoring
+docker compose -f docker-compose.monitoring.yml up -d
+```
+
+Grafana is served at `https://<your litellm domain>/grafana/` via the included
+nginx location block. See [monitoring/README.md](monitoring/README.md) for
+setup — including the required LiteLLM metrics credentials file.
+
+## Lessons Learned / Gotchas
+
+Hard-won operational lessons from running this stack in production:
+
+- **PersistentConfig variables are DB-backed after first launch.** Open WebUI
+  stores many env vars (`WEBUI_URL`, `DEFAULT_MODELS`, and others marked
+  `PersistentConfig` in the docs) in its database on first startup. After that,
+  changing the env var in `docker-compose.yml` is silently ignored — the
+  DB-stored value wins. Change these via **Admin Panel > Settings** instead.
+
+- **Frozen model cache.** After adding or renaming models in LiteLLM, Open
+  WebUI's model picker may not update — it caches the model list in Redis with
+  no TTL. Clear it with:
+
+  ```bash
+  docker exec chat-redis redis-cli -n 1 del open-webui:models
+  ```
+
+- **Domain migrations: never blanket-redirect.** If you ever rename your
+  domain, 308-redirect **only** `/` and `/auth` from the old domain and keep
+  proxying everything else. WebSocket upgrade requests cannot follow redirects
+  — a blanket redirect produced 73,000+ broken `/ws/socket.io` redirect loops
+  in 8 hours before we caught it.
 
 ## License
 

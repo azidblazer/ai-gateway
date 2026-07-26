@@ -67,15 +67,13 @@ model_list:
     model_info:
       description: "GPT-5 Mini with reasoning - good balance, uses budget faster"
 
-  # ==================== GOOGLE VERTEX AI (Express Mode) ====================
-  # Using Vertex AI Express endpoint with API key authentication
-  # LiteLLM appends /models/{model}:generateContent to api_base
+  # ==================== GOOGLE AI STUDIO ====================
+  # Uses a Google AI Studio API key (aistudio.google.com) with the gemini/ prefix.
   # Gemini 3 defaults to thinking_level=HIGH which burns budget fast.
   # Setting reasoning_effort: low reduces thinking to save costs.
   - model_name: gemini-3.1-pro-preview
     litellm_params:
       model: gemini/gemini-3.1-pro-preview
-      api_base: https://aiplatform.googleapis.com/v1/publishers/google
       api_key: os.environ/GOOGLE_API_KEY
       reasoning_effort: "low"
     model_info:
@@ -84,7 +82,6 @@ model_list:
   - model_name: gemini-3.1-pro-preview
     litellm_params:
       model: gemini/gemini-3-pro-preview
-      api_base: https://aiplatform.googleapis.com/v1/publishers/google
       api_key: os.environ/GOOGLE_API_KEY
       reasoning_effort: "low"
     model_info:
@@ -93,7 +90,6 @@ model_list:
   - model_name: gemini-3-flash-preview
     litellm_params:
       model: gemini/gemini-3-flash-preview
-      api_base: https://aiplatform.googleapis.com/v1/publishers/google
       api_key: os.environ/GOOGLE_API_KEY
       reasoning_effort: "low"
     model_info:
@@ -103,7 +99,6 @@ model_list:
   - model_name: gemini-3.1-pro-thinking
     litellm_params:
       model: gemini/gemini-3.1-pro-preview
-      api_base: https://aiplatform.googleapis.com/v1/publishers/google
       api_key: os.environ/GOOGLE_API_KEY
       reasoning_effort: "high"
     model_info:
@@ -112,7 +107,6 @@ model_list:
   - model_name: gemini-3.1-pro-thinking
     litellm_params:
       model: gemini/gemini-3-pro-preview
-      api_base: https://aiplatform.googleapis.com/v1/publishers/google
       api_key: os.environ/GOOGLE_API_KEY
       reasoning_effort: "high"
     model_info:
@@ -121,7 +115,6 @@ model_list:
   - model_name: gemini-3-flash-thinking
     litellm_params:
       model: gemini/gemini-3-flash-preview
-      api_base: https://aiplatform.googleapis.com/v1/publishers/google
       api_key: os.environ/GOOGLE_API_KEY
       reasoning_effort: "high"
     model_info:
@@ -170,12 +163,49 @@ model_list:
   - model_name: gemini-3-pro-image-preview
     litellm_params:
       model: gemini/gemini-3-pro-image-preview
-      api_base: https://aiplatform.googleapis.com/v1/publishers/google
       api_key: os.environ/GOOGLE_API_KEY
     model_info:
       mode: image_generation
       description: "Google image generation - more budget-friendly than GPT images (Preview)"
       input_cost_per_image: 0.02
+
+  # ==================== EMBEDDINGS ====================
+  - model_name: text-embedding-3-small
+    litellm_params:
+      model: openai/text-embedding-3-small
+      api_key: os.environ/OPENAI_API_KEY
+    model_info:
+      mode: embedding
+      description: "OpenAI text embeddings - low cost, used for RAG / semantic search"
+      input_cost_per_token: 0.00000002
+
+  # ==================== SELF-HOSTED MODELS (optional) ====================
+  # Example: an OpenAI-compatible model (vLLM, TGI, llama.cpp server, Ollama, etc.)
+  # served on your own hardware. Two deployments share one model_name so the
+  # router load-balances across them — latency-based-routing (see router_settings)
+  # sends traffic to whichever box is responding faster == less busy.
+  # Cost set to 0: free local hardware, so it does not draw down user budgets.
+  # Remove the cost lines if you want self-hosted usage to count toward the weekly cap.
+  #
+  # - model_name: self-hosted-model
+  #   litellm_params:
+  #     model: openai/your-model-name
+  #     api_base: http://inference-host-1:8000/v1
+  #     api_key: "none"
+  #   model_info:
+  #     description: "Self-hosted model (node 1)"
+  #     input_cost_per_token: 0
+  #     output_cost_per_token: 0
+  #
+  # - model_name: self-hosted-model
+  #   litellm_params:
+  #     model: openai/your-model-name
+  #     api_base: http://inference-host-2:8000/v1
+  #     api_key: "none"
+  #   model_info:
+  #     description: "Self-hosted model (node 2)"
+  #     input_cost_per_token: 0
+  #     output_cost_per_token: 0
 
 litellm_settings:
   # Redis caching — deduplicate similar queries, save budget

@@ -20,6 +20,15 @@
     <link rel="stylesheet" href="/dashboard/static/css/styles.css">
 </head>
 <body class="min-h-screen bg-gray-50 p-4 sm:p-6">
+
+    <!-- Back Button-->
+    <button type="button" onclick="window.location.href='/';"
+        class="inline-flex items-center gap-2 rounded-lg bg-brand px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand min-h-[44px] cursor-pointer"
+        >
+        <svg class="h-4 w-4 -ml-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"/></svg>
+        Back
+    </button>
+
     <div class="mx-auto max-w-xl rounded-xl bg-white shadow-md ring-1 ring-gray-100 p-5 sm:p-8">
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Your Usage Limits</h1>
 
@@ -44,7 +53,7 @@
             <h2 class="text-lg font-semibold text-gray-800 mb-2">No usage yet this week</h2>
             <p class="text-gray-500 text-sm leading-relaxed mb-5">You haven't used any AI models yet this week. Your weekly usage resets every Monday.</p>
             <p>
-                <a href="https://chat.example.edu"
+                <a href="/"
                    class="inline-flex items-center gap-2 rounded-lg bg-brand px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand min-h-[44px] no-underline">
                     Open AI Gateway
                 </a>
@@ -127,18 +136,67 @@
         <div id="feedback-section" style="display:none;">
             <hr class="my-8 border-gray-200">
             <h2 class="text-lg sm:text-xl font-bold text-gray-900 mb-1">Share Your Feedback</h2>
-            <p class="text-sm text-gray-500 leading-relaxed mb-5">Help us improve the AI Gateway. Suggestions, issues, or feature requests</p>
+            <p class="text-sm text-gray-500 leading-relaxed mb-5">Tell us how the AI Gateway is working for you. Every question is optional — answer what's relevant.</p>
 
-            <form id="feedback-form" class="space-y-3" novalidate>
-                <div>
+            <form id="feedback-form" class="space-y-6" novalidate>
+                <!-- 1. Time Savings -->
+                <fieldset class="border-0 p-0 m-0">
+                    <legend class="block text-sm font-semibold text-gray-900 mb-2">Did this help you save time on your task?</legend>
+                    <div class="flex flex-col gap-2">
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="time_savings" value="~5 minutes" class="h-4 w-4 text-brand focus:ring-brand"> Yes — ~5 minutes</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="time_savings" value="~15 minutes" class="h-4 w-4 text-brand focus:ring-brand"> Yes — ~15 minutes</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="time_savings" value="30+ minutes" class="h-4 w-4 text-brand focus:ring-brand"> Yes — 30+ minutes</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="time_savings" value="No" class="h-4 w-4 text-brand focus:ring-brand"> No</label>
+                    </div>
+                </fieldset>
+
+                <!-- 2. Use Case -->
+                <fieldset class="border-0 p-0 m-0">
+                    <legend class="block text-sm font-semibold text-gray-900 mb-2">What were you trying to accomplish?</legend>
+                    <div class="flex flex-col gap-2">
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="use_case" value="Draft content" class="h-4 w-4 text-brand focus:ring-brand"> Draft content (email, document, etc.)</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="use_case" value="Summarize information" class="h-4 w-4 text-brand focus:ring-brand"> Summarize information</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="use_case" value="Research / brainstorming" class="h-4 w-4 text-brand focus:ring-brand"> Research / brainstorming</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="use_case" value="Technical help" class="h-4 w-4 text-brand focus:ring-brand"> Technical help (code, data, etc.)</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="use_case" value="Other" class="h-4 w-4 text-brand focus:ring-brand"> Other</label>
+                    </div>
+                    <input type="text" id="use-case-other" maxlength="500" placeholder="Tell us more (optional)"
+                        class="mt-2 block w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-brand focus:ring-2 focus:ring-brand/20 focus:outline-none" style="display:none;">
+                </fieldset>
+
+                <!-- 3. Success Rating -->
+                <fieldset class="border-0 p-0 m-0">
+                    <legend class="block text-sm font-semibold text-gray-900 mb-2">Did the AI response meet your needs?</legend>
+                    <div class="flex flex-col gap-2">
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="success_rating" value="Fully met my needs" class="h-4 w-4 text-brand focus:ring-brand"> Fully met my needs</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="success_rating" value="Partially met my needs" class="h-4 w-4 text-brand focus:ring-brand"> Partially met my needs</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="success_rating" value="Did not meet my needs" class="h-4 w-4 text-brand focus:ring-brand"> Did not meet my needs</label>
+                    </div>
+                </fieldset>
+
+                <!-- 4. Friction / Issues -->
+                <fieldset class="border-0 p-0 m-0">
+                    <legend class="block text-sm font-semibold text-gray-900 mb-2">Did you run into any issues?</legend>
+                    <div class="flex flex-col gap-2">
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="issues" value="No issues" class="h-4 w-4 text-brand focus:ring-brand"> No issues</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="issues" value="Hit usage limit" class="h-4 w-4 text-brand focus:ring-brand"> Hit usage limit</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="issues" value="File upload problem" class="h-4 w-4 text-brand focus:ring-brand"> File upload problem</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="issues" value="Confusing results" class="h-4 w-4 text-brand focus:ring-brand"> Confusing results</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"><input type="radio" name="issues" value="Other" class="h-4 w-4 text-brand focus:ring-brand"> Other</label>
+                    </div>
+                    <input type="text" id="issues-other" maxlength="500" placeholder="Tell us more (optional)"
+                        class="mt-2 block w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-brand focus:ring-2 focus:ring-brand/20 focus:outline-none" style="display:none;">
+                </fieldset>
+
+                <!-- Free-text comment (optional) -->
+                <div class="form-group">
+                    <label for="feedback-message" class="block text-sm font-semibold text-gray-900 mb-2">Anything else? <span class="font-normal text-gray-500">(optional)</span></label>
                     <textarea
                         id="feedback-message"
                         class="block w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-brand focus:ring-2 focus:ring-brand/20 focus:outline-none resize-y min-h-[120px]"
-                        placeholder="What's on your mind? (minimum 10 characters)"
-                        minlength="10"
+                        placeholder="Suggestions, issues, or feature requests"
                         maxlength="5000"
                         rows="4"
-                        required
                         aria-describedby="char-counter"
                     ></textarea>
                     <span id="char-counter" class="mt-1 block text-right text-xs text-gray-400 transition-colors" aria-live="polite">0 / 5,000</span>
@@ -164,7 +222,7 @@
     </div>
 
     <script>
-        // Get Open WebUI token from shared localStorage (same origin: the AI Gateway)
+        // Get Open WebUI token from shared localStorage (same origin as Open WebUI)
         function getToken() {
             return localStorage.getItem('token');
         }
@@ -357,7 +415,7 @@
 
                     // 401: token invalid/expired — redirect to login
                     if (response.status === 401) {
-                        window.location.href = 'https://chat.example.edu';
+                        window.location.href = '/';
                         return null;
                     }
 
@@ -412,7 +470,7 @@
             const token = getToken();
             if (!token) {
                 // Not logged into Open WebUI — redirect to login
-                window.location.href = 'https://chat.example.edu';
+                window.location.href = '/';
                 return;
             }
 
@@ -436,6 +494,29 @@
             const submitBtn = document.getElementById("feedback-submit");
             const errorEl = document.getElementById("feedback-error");
             const successEl = document.getElementById("feedback-success");
+            const ucOtherInput = document.getElementById("use-case-other");
+            const issOtherInput = document.getElementById("issues-other");
+
+            const getRadio = name => form.querySelector(`input[name="${name}"]:checked`)?.value || "";
+
+            // Enable Send when any radio is selected or the comment has text.
+            function validate() {
+                const anyRadio = !!form.querySelector('input[type="radio"]:checked');
+                submitBtn.disabled = !(anyRadio || textarea.value.trim().length > 0);
+            }
+
+            // Toggle the inline "Other" text inputs based on selection.
+            function syncOther(name, input) {
+                const show = getRadio(name) === "Other";
+                input.style.display = show ? "block" : "none";
+                if (!show) input.value = "";
+            }
+
+            form.addEventListener("change", function () {
+                syncOther("use_case", ucOtherInput);
+                syncOther("issues", issOtherInput);
+                validate();
+            });
 
             textarea.addEventListener("input", function () {
                 const len = this.value.length;
@@ -447,13 +528,25 @@
                     counter.classList.remove("text-red-500", "font-semibold");
                     counter.classList.add("text-gray-400");
                 }
-                submitBtn.disabled = len < 10;
+                validate();
             });
 
             form.addEventListener("submit", async function (e) {
                 e.preventDefault();
-                const message = textarea.value.trim();
-                if (message.length < 10) return;
+
+                const data = {};
+                if (getRadio("time_savings"))   data.time_savings = getRadio("time_savings");
+                if (getRadio("use_case"))       data.use_case = getRadio("use_case");
+                if (getRadio("success_rating")) data.success_rating = getRadio("success_rating");
+                if (getRadio("issues"))         data.issues = getRadio("issues");
+                const ucOther = ucOtherInput.value.trim();
+                const issOther = issOtherInput.value.trim();
+                if (data.use_case === "Other" && ucOther) data.use_case_other = ucOther;
+                if (data.issues === "Other" && issOther)   data.issues_other = issOther;
+                const msg = textarea.value.trim();
+                if (msg) data.message = msg;
+
+                if (Object.keys(data).length === 0) return;
 
                 submitBtn.disabled = true;
                 submitBtn.textContent = "Sending\u2026";
@@ -462,7 +555,7 @@
                 try {
                     const token = getToken();
                     if (!token) {
-                        window.location.href = 'https://chat.example.edu';
+                        window.location.href = '/';
                         return;
                     }
 
@@ -472,11 +565,11 @@
                             "Authorization": "Bearer " + token,
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify({ message }),
+                        body: JSON.stringify(data),
                     });
 
                     if (res.status === 401) {
-                        window.location.href = 'https://chat.example.edu';
+                        window.location.href = '/';
                         return;
                     }
 
@@ -529,7 +622,7 @@
 
                     const token = getToken();
                     if (!token) {
-                        window.location.href = 'https://chat.example.edu';
+                        window.location.href = '/';
                         return;
                     }
 

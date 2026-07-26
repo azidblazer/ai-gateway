@@ -56,11 +56,50 @@ async def submit_feedback(
     ]
     display_name = html.escape(current_user.name or "Unknown")
     user_email = html.escape(current_user.email)
-    safe_message = html.escape(body.message)
+    # Collect answered structured fields as (label, value) rows, skipping blanks.
+    rows: list[tuple[str, str]] = []
+    if body.time_savings:
+        rows.append(("Time saved", body.time_savings))
+    if body.use_case:
+        uc = body.use_case
+        if body.use_case == "Other" and body.use_case_other:
+            uc = f"{uc} — {body.use_case_other}"
+        rows.append(("Use case", uc))
+    if body.success_rating:
+        rows.append(("Met needs", body.success_rating))
+    if body.issues:
+        iss = body.issues
+        if body.issues == "Other" and body.issues_other:
+            iss = f"{iss} — {body.issues_other}"
+        rows.append(("Issues", iss))
 
-    text_body = (
-        f"Feedback from {current_user.name or 'Unknown'} ({current_user.email})\n"
-        f"\n{body.message}"
+    has_message = bool(body.message and body.message.strip())
+    safe_message = html.escape(body.message) if has_message else ""
+
+    # Plaintext body
+    text_lines = [
+        f"Feedback from {current_user.name or 'Unknown'} ({current_user.email})",
+        "",
+    ]
+    for label, value in rows:
+        text_lines.append(f"{label}: {value}")
+    if has_message:
+        if rows:
+            text_lines.append("")
+        text_lines.append(body.message)
+    text_body = "\n".join(text_lines)
+
+    # HTML body — structured rows in the table, comment in the gray block (if any)
+    meta_rows = "".join(
+        f'<tr><td style="padding:4px 12px 4px 0;color:#666">{html.escape(label)}</td>'
+        f'<td style="padding:4px 0">{html.escape(value)}</td></tr>'
+        for label, value in rows
+    )
+    comment_block = (
+        f'<div style="background:#f8f9fa;padding:16px;border-radius:8px;'
+        f'white-space:pre-wrap">{safe_message}</div>'
+        if has_message
+        else ""
     )
     html_body = f"""\
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px">
@@ -70,8 +109,9 @@ async def submit_feedback(
         <td style="padding:4px 0"><strong>{display_name}</strong></td></tr>
     <tr><td style="padding:4px 12px 4px 0;color:#666">Email</td>
         <td style="padding:4px 0">{user_email}</td></tr>
+    {meta_rows}
   </table>
-  <div style="background:#f8f9fa;padding:16px;border-radius:8px;white-space:pre-wrap">{safe_message}</div>
+  {comment_block}
 </div>"""
 
     msg = EmailMessage()

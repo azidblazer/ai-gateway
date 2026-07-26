@@ -1,0 +1,691 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "CPU Headroom",
+      "description": "Percentage of CPU capacity remaining",
+      "type": "gauge",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 15
+              },
+              {
+                "color": "green",
+                "value": 30
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100",
+          "legendFormat": "CPU Available",
+          "refId": "A"
+        }
+      ],
+      "id": 1
+    },
+    {
+      "title": "Memory Headroom",
+      "description": "Percentage of RAM available",
+      "type": "gauge",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 15
+              },
+              {
+                "color": "green",
+                "value": 30
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "(node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100",
+          "legendFormat": "RAM Available",
+          "refId": "A"
+        }
+      ],
+      "id": 2
+    },
+    {
+      "title": "Swap Pressure",
+      "description": "Pages swapped in+out per second. Any value >0 means active swapping (performance degraded)",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "expr": "rate(node_vmstat_pswpin[5m]) + rate(node_vmstat_pswpout[5m])",
+          "legendFormat": "Swap I/O ops/s",
+          "refId": "A"
+        }
+      ],
+      "id": 3
+    },
+    {
+      "title": "Registered Users",
+      "type": "stat",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "expr": "litellm_registered_users",
+          "instant": true,
+          "legendFormat": "Users",
+          "refId": "A"
+        }
+      ],
+      "id": 4
+    },
+    {
+      "id": 5,
+      "title": "Active Users (rolling 24h)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "litellm_daily_active_users",
+          "range": true,
+          "instant": false,
+          "legendFormat": "DAU"
+        }
+      ]
+    },
+    {
+      "title": "OpenWebUI Memory Projection (30-day)",
+      "description": "Current memory usage with 30-day linear projection. Dashed line shows where memory will be in 30 days at current growth rate.",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "30-day projection"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Memory Limit (5GB)"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    5,
+                    5
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name=\"chat-openwebui\"}",
+          "legendFormat": "Current Usage",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "expr": "predict_linear(container_memory_usage_bytes{name=\"chat-openwebui\"}[7d], 86400 * 30)",
+          "legendFormat": "30-day projection",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        },
+        {
+          "expr": "container_memory_limit_bytes{name=\"chat-openwebui\"}",
+          "legendFormat": "Memory Limit (5GB)",
+          "refId": "C",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "id": 6
+    },
+    {
+      "title": "LiteLLM Memory Projection (30-day)",
+      "description": "Current memory usage with 30-day linear projection.",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "30-day projection"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Memory Limit (6GB)"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    5,
+                    5
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name=\"chat-litellm\"}",
+          "legendFormat": "Current Usage",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "expr": "predict_linear(container_memory_usage_bytes{name=\"chat-litellm\"}[7d], 86400 * 30)",
+          "legendFormat": "30-day projection",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        },
+        {
+          "expr": "container_memory_limit_bytes{name=\"chat-litellm\"}",
+          "legendFormat": "Memory Limit (6GB)",
+          "refId": "C",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "id": 7
+    },
+    {
+      "title": "Daily Request Volume Trend",
+      "description": "Total requests per day over time. Growth trend indicates user adoption rate.",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 20,
+            "lineWidth": 2,
+            "drawStyle": "bars",
+            "barAlignment": 0
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "increase(litellm_proxy_total_requests_metric_total[24h])",
+          "legendFormat": "Requests/day",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "id": 8
+    },
+    {
+      "title": "Concurrent Requests vs Resources",
+      "description": "Overlay of in-flight requests with host CPU usage to show correlation.",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 0,
+            "lineWidth": 2
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU %"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "sum(litellm_in_flight_requests)",
+          "legendFormat": "In-Flight Requests",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "CPU %",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "id": 9
+    },
+    {
+      "title": "Host Memory Over Time",
+      "description": "Total host memory usage trend for capacity planning.",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "fillOpacity": 15,
+            "lineWidth": 2
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    5,
+                    5
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
+          "legendFormat": "Used",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "expr": "node_memory_MemTotal_bytes",
+          "legendFormat": "Total",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "id": 10
+    },
+    {
+      "title": "Container Memory Breakdown",
+      "description": "Stacked view of memory consumed by each container. Shows which services dominate resource usage.",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "fillOpacity": 50,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name=~\"chat-.*\"}",
+          "legendFormat": "{{ name }}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "id": 11
+    },
+    {
+      "title": "Scaling Assessment",
+      "type": "text",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## How to Read This Dashboard\n\n**After 1-2 weeks of data collection**, use these panels to make scaling decisions:\n\n### Key Indicators\n| Metric | Green (Safe to Scale) | Yellow (Caution) | Red (Upgrade First) |\n|--------|----------------------|-------------------|---------------------|\n| CPU Headroom | >50% idle | 20-50% idle | <20% idle |\n| Memory Headroom | >30% available | 15-30% available | <15% available |\n| Swap Pressure | 0 ops/s | 1-50 ops/s | >50 ops/s |\n| OpenWebUI Memory | <70% of limit | 70-85% of limit | >85% of limit |\n| Request Queue Time | <1s P95 | 1-5s P95 | >5s P95 |\n| In-Flight Requests | <25 | 25-50 | >50 |\n\n### Scaling Projection\n1. **Observe** the daily request volume trend to estimate growth rate\n2. **Correlate** in-flight requests with CPU/memory to find the per-user resource cost\n3. **Check** the 30-day memory projections \u2014 if they hit the limit line, you need a bigger VM before scaling\n4. **Monitor** swap pressure \u2014 any sustained swapping means the VM is undersized for current load\n\n### Current VM: 6 cores / 16GB RAM\n- **1000 users**: Likely needs 32GB RAM (OpenWebUI memory is the bottleneck)\n- **5000 users**: Likely needs 64GB+ RAM and 12+ cores, or horizontal scaling"
+      },
+      "id": 12
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [
+    "capacity-planning",
+    "scaling"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Capacity Planning",
+  "uid": "capacity-planning"
+}

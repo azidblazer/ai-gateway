@@ -1,0 +1,30 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - alerts.yml
+
+scrape_configs:
+  # Host metrics + container stats (via textfile collector) from node_exporter
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # LiteLLM application metrics (request rate, latency, TTFT, tokens, errors, cache, spend)
+  # LiteLLM v1.87+ requires admin auth on /metrics (virtual/read-only keys get 401),
+  # so the credentials file holds the master key (gitignored, mode 600).
+  # Create it first — see monitoring/README.md.
+  - job_name: 'litellm'
+    static_configs:
+      - targets: ['litellm:4000']
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/litellm_metrics_key
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

@@ -1,0 +1,118 @@
+services:
+  # Prometheus - Time-series database, scrapes metrics from all targets
+  prometheus:
+    image: prom/prometheus:v3.4.0
+    container_name: mon-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--storage.tsdb.retention.size=5GB'
+      - '--storage.tsdb.wal-compression'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      # Create this file first — see monitoring/README.md (holds a LiteLLM API key)
+      - ./prometheus/litellm_metrics_key:/etc/prometheus/litellm_metrics_key:ro
+      - ./data/prometheus:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - monitoring
+      - chat-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Grafana - Dashboards and visualization
+  grafana:
+    image: grafana/grafana-oss:12.0.0
+    container_name: mon-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme}
+      # Grafana is served at https://<your litellm domain>/grafana via nginx
+      - GF_SERVER_ROOT_URL=https://${LITELLM_DOMAIN:-litellm.example.edu}/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SECURITY_CSRF_TRUSTED_ORIGINS=${LITELLM_DOMAIN:-litellm.example.edu}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES=false
+      - GF_DATABASE_WAL=true
+      - GF_UNIFIED_ALERTING_ENABLED=false
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "127.0.0.1:3001:3000"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - monitoring
+      - chat-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Node Exporter - Host-level metrics + container stats via textfile collector
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: mon-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.textfile.directory=/textfile'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - ./data/textfile:/textfile:ro
+    ports:
+      - "127.0.0.1:9100:9100"
+    deploy:
+      resources:
+        limits:
+          memory: 50M
+    networks:
+      - monitoring
+    pid: host
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  monitoring:
+    driver: bridge
+  chat-network:
+    external: true
+    # Docker Compose prefixes the network with the main stack's project name
+    # (the directory name by default). If your repo lives at /opt/ai-gateway,
+    # the network is ai-gateway_chat-network. Check with: docker network ls
+    name: ai-gateway_chat-network

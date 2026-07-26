@@ -1,0 +1,123 @@
+groups:
+  - name: host_alerts
+    rules:
+      - alert: HighCpuUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host CPU usage above 85% for 5 minutes"
+          description: "CPU usage is {{ $value | printf \"%.1f\" }}%"
+
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Host memory usage above 90%"
+          description: "Memory usage is {{ $value | printf \"%.1f\" }}%"
+
+      - alert: HighSwapUsage
+        expr: (1 - node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Swap usage above 80%"
+          description: "Swap usage is {{ $value | printf \"%.1f\" }}%. System is memory-constrained."
+
+      - alert: DiskSpaceLowRoot
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Root partition above 85% full"
+          description: "Root partition is {{ $value | printf \"%.1f\" }}% full"
+
+      - alert: DiskSpaceLowVar
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/var"} / node_filesystem_size_bytes{mountpoint="/var"}) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "/var partition above 90% full"
+          description: "/var is {{ $value | printf \"%.1f\" }}% full"
+
+  - name: container_alerts
+    rules:
+      - alert: ContainerHighMemory
+        expr: container_memory_usage_percent{name=~"chat-.*"} > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} memory above 85% of limit"
+          description: "{{ $labels.name }} is at {{ $value | printf \"%.1f\" }}% of its memory limit"
+
+      - alert: ContainerHighCpu
+        expr: container_cpu_usage_percent{name=~"chat-.*"} > 150
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} CPU above 150% for 5 minutes"
+          description: "{{ $labels.name }} CPU is {{ $value | printf \"%.1f\" }}%"
+
+  - name: litellm_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(litellm_proxy_failed_requests_metric_total[5m]) / (rate(litellm_proxy_total_requests_metric_total[5m]) > 0) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LiteLLM error rate above 5%"
+          description: "{{ $value | printf \"%.2f\" }}% of requests are failing"
+
+      - alert: HighLatencyP95
+        expr: histogram_quantile(0.95, rate(litellm_llm_api_latency_metric_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LiteLLM P95 latency above 30 seconds"
+          description: "P95 latency is {{ $value | printf \"%.1f\" }}s"
+
+      - alert: HighTTFT
+        expr: histogram_quantile(0.95, rate(litellm_llm_api_time_to_first_token_metric_bucket[5m])) > 15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LiteLLM P95 time-to-first-token above 15 seconds"
+          description: "P95 TTFT is {{ $value | printf \"%.1f\" }}s"
+
+      - alert: HighQueueTime
+        expr: histogram_quantile(0.95, rate(litellm_request_queue_time_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LiteLLM P95 request queue time above 5 seconds"
+          description: "Proxy is overloaded. P95 queue time is {{ $value | printf \"%.1f\" }}s"
+
+      - alert: HighInFlightRequests
+        expr: sum(litellm_in_flight_requests) > 50
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 50 concurrent in-flight requests"
+          description: "{{ $value }} requests currently in flight"
+
+      - alert: DeploymentUnhealthy
+        expr: litellm_deployment_state > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LiteLLM deployment {{ $labels.litellm_model_name }} is degraded"
+          description: "Deployment state is {{ $value }} (0=healthy, 1=partial, 2=down)"

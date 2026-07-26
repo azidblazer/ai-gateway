@@ -1,5 +1,7 @@
 """Pydantic response models for usage and feedback APIs."""
-from pydantic import BaseModel, Field
+from typing import Literal, Optional
+
+from pydantic import BaseModel, Field, model_validator
 
 
 class ModelSpend(BaseModel):
@@ -11,8 +13,33 @@ class ModelSpend(BaseModel):
 
 
 class FeedbackRequest(BaseModel):
-    """User feedback submission."""
-    message: str = Field(min_length=10, max_length=5000)
+    """User feedback submission. All fields optional; at least one required."""
+    time_savings: Optional[Literal[
+        "~5 minutes", "~15 minutes", "30+ minutes", "No"
+    ]] = None
+    use_case: Optional[Literal[
+        "Draft content", "Summarize information",
+        "Research / brainstorming", "Technical help", "Other"
+    ]] = None
+    use_case_other: Optional[str] = Field(default=None, max_length=500)
+    success_rating: Optional[Literal[
+        "Fully met my needs", "Partially met my needs", "Did not meet my needs"
+    ]] = None
+    issues: Optional[Literal[
+        "No issues", "Hit usage limit", "File upload problem",
+        "Confusing results", "Other"
+    ]] = None
+    issues_other: Optional[str] = Field(default=None, max_length=500)
+    message: Optional[str] = Field(default=None, max_length=5000)
+
+    @model_validator(mode="after")
+    def _require_at_least_one(self):
+        if not any([
+            self.time_savings, self.use_case, self.success_rating,
+            self.issues, (self.message or "").strip(),
+        ]):
+            raise ValueError("Please answer at least one question or leave a comment.")
+        return self
 
 
 class FeedbackResponse(BaseModel):
