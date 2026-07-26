@@ -54,7 +54,7 @@ Built for organizations (universities, enterprises) that need to provide employe
 | openwebui | ghcr.io/open-webui/open-webui:v0.10.2 | Chat UI with SSO |
 | dashboard | ./dashboard (custom build) | Usage dashboard with feedback form |
 | nginx | nginx:1.28-alpine | SSL termination, domain routing |
-| tika | apache/tika:latest-full | Document parsing for file uploads |
+| tika | apache/tika:3.3.1.0-full | Document parsing for file uploads (2G cap, 1G parser heap via `tika/tika-config.xml`) |
 | autoheal | willfarrell/autoheal | Auto-restart unhealthy containers |
 | watchtower | containrrr/watchtower | Auto-update container images (disabled by default) |
 
@@ -185,17 +185,6 @@ The default settings are optimized for ~1000 concurrent users on a 6-core / 16GB
 - **Redis caching**: `cache: true` with 1hr TTL (deduplicates similar queries)
 
 See the comments in `docker-compose.yml` and `litellm/config.yaml` for detailed explanations.
-
-## Kubernetes
-
-A Helm chart is included in `kubernetes/ai-gateway/` for Kubernetes deployments with:
-- PgBouncer connection pooling
-- Redis Sentinel HA
-- Horizontal pod autoscaling
-- Network policies
-- Vault integration for secrets
-
-See `kubernetes/ai-gateway/values.yaml` for configuration options.
 
 ## Monitoring
 
