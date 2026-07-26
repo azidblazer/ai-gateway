@@ -1,14 +1,28 @@
 # Secrets and sensitive files
 .env
+.env.*
 ssl/*
 !ssl/README.md
 litellm/vertex-credentials.json
+*.key
+*.pem
+*.csr
+
+# Database dumps and exports — contain user data, must never be committed
+*.dump
+*.sql
+migration-logs/
 
 # Data directories
 data/
+monitoring/data/
+
+# Monitoring secrets — LiteLLM API key used for authenticated /metrics scraping
+monitoring/prometheus/litellm_metrics_key
 
 # Logs
 *.log
+logs/
 
 # OS files
 .DS_Store

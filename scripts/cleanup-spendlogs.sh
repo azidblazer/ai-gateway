@@ -10,7 +10,8 @@
 set -euo pipefail
 
 COMPOSE_DIR="/opt/ai-gateway"
-LOG_FILE="/var/log/openwebui-spendlogs-cleanup.log"
+LOG_FILE="${COMPOSE_DIR}/logs/spendlogs-cleanup.log"
+mkdir -p "${COMPOSE_DIR}/logs"
 ENV_FILE="${COMPOSE_DIR}/.env"
 DB_NAME="litellm"
 DB_USER="openwebui"

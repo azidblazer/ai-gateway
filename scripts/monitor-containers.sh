@@ -10,7 +10,8 @@
 set -euo pipefail
 
 COMPOSE_DIR="/opt/ai-gateway"
-LOG_FILE="/var/log/openwebui-monitor.log"
+LOG_FILE="${COMPOSE_DIR}/logs/monitor.log"
+mkdir -p "${COMPOSE_DIR}/logs"
 STATE_FILE="/tmp/monitor-state.json"
 ENV_FILE="${COMPOSE_DIR}/.env"
 

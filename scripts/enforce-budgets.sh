@@ -13,7 +13,8 @@
 set -euo pipefail
 
 COMPOSE_DIR="/opt/ai-gateway"
-LOG_FILE="/var/log/openwebui-budget-enforce.log"
+LOG_FILE="${COMPOSE_DIR}/logs/budget-enforce.log"
+mkdir -p "${COMPOSE_DIR}/logs"
 ENV_FILE="${COMPOSE_DIR}/.env"
 DB_NAME="litellm"
 DB_USER="openwebui"
