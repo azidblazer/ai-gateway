@@ -14,7 +14,7 @@ from api.usage import router as usage_router
 from api.feedback import router as feedback_router
 from api.coaching import router as coaching_router
 from config import settings
-from db.migrations import ensure_coaching_table
+from db.migrations import ensure_coaching_table, ensure_feedback_ratelimit_table
 from db.pool import create_pool
 
 # Paths relative to this file
@@ -61,6 +61,13 @@ async def lifespan(app: FastAPI):
         print("Coaching cache table ready")
     except Exception as e:
         print(f"Coaching cache table creation failed: {e}")
+
+    # Ensure feedback rate-limit table exists
+    try:
+        await ensure_feedback_ratelimit_table(app.state.pool)
+        print("Feedback rate-limit table ready")
+    except Exception as e:
+        print(f"Feedback rate-limit table creation failed: {e}")
 
     yield
 

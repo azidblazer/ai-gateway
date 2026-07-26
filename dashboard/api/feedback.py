@@ -1,11 +1,10 @@
 """Feedback email endpoint."""
 import html
-import time
 from email.message import EmailMessage
 from typing import Annotated
 
 import aiosmtplib
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from auth.models import CurrentUser
 from auth.token_validator import get_current_user
@@ -14,9 +13,26 @@ from models.responses import FeedbackRequest, FeedbackResponse
 
 router = APIRouter(prefix="/api", tags=["feedback"])
 
-# In-memory rate limit: {email: last_submit_timestamp}
-_rate_limit: dict[str, float] = {}
 _RATE_LIMIT_SECONDS = 60
+
+# Atomically claim a submission slot: insert or bump last_submit, but only if the
+# previous submission is old enough. Returns a row iff the claim succeeded — shared
+# across all workers via the DB (an in-memory dict would be per-worker).
+_CLAIM_SQL = """
+INSERT INTO dashboard_feedback_ratelimit (email, last_submit)
+VALUES ($1, NOW())
+ON CONFLICT (email) DO UPDATE SET last_submit = NOW()
+WHERE dashboard_feedback_ratelimit.last_submit <= NOW() - make_interval(secs => $2)
+RETURNING 1
+"""
+
+_REMAINING_SQL = """
+SELECT CEIL(EXTRACT(EPOCH FROM (last_submit + make_interval(secs => $2) - NOW())))
+FROM dashboard_feedback_ratelimit WHERE email = $1
+"""
+
+# Release the slot (used when the send fails, so the user can retry immediately)
+_RELEASE_SQL = "DELETE FROM dashboard_feedback_ratelimit WHERE email = $1"
 
 
 @router.post(
@@ -29,6 +45,7 @@ _RATE_LIMIT_SECONDS = 60
     },
 )
 async def submit_feedback(
+    request: Request,
     body: FeedbackRequest,
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
 ) -> FeedbackResponse:
@@ -40,15 +57,20 @@ async def submit_feedback(
             detail="Feedback is not configured yet. Please try again later.",
         )
 
-    # Rate limit
-    now = time.monotonic()
-    last = _rate_limit.get(current_user.email, 0)
-    if now - last < _RATE_LIMIT_SECONDS:
-        remaining = int(_RATE_LIMIT_SECONDS - (now - last))
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Please wait {remaining} seconds before submitting again.",
+    # Rate limit (DB-backed, shared across workers)
+    pool = request.app.state.pool
+    async with pool.acquire() as conn:
+        claimed = await conn.fetchrow(
+            _CLAIM_SQL, current_user.email, _RATE_LIMIT_SECONDS
         )
+        if claimed is None:
+            remaining = await conn.fetchval(
+                _REMAINING_SQL, current_user.email, _RATE_LIMIT_SECONDS
+            )
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Please wait {int(remaining or _RATE_LIMIT_SECONDS)} seconds before submitting again.",
+            )
 
     # Build email
     recipients = [
@@ -139,13 +161,17 @@ async def submit_feedback(
         await aiosmtplib.send(msg, **kwargs)
     except Exception as e:
         print(f"SMTP send error for {current_user.email}: {e}")
+        # Release the rate-limit slot so a failed send doesn't cost the user a minute
+        try:
+            async with pool.acquire() as conn:
+                await conn.execute(_RELEASE_SQL, current_user.email)
+        except Exception:
+            pass
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Failed to send feedback. Please try again later.",
         )
 
-    # Record successful send for rate limiting
-    _rate_limit[current_user.email] = now
     print(f"Feedback sent from {current_user.email}")
 
     return FeedbackResponse(success=True, detail="Feedback sent. Thank you!")

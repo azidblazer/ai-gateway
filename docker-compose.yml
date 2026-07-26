@@ -26,7 +26,11 @@ services:
     image: redis:7-alpine
     container_name: chat-redis
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "no", "--save", "", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru", "--timeout", "1800", "--maxclients", "10000"]
+    # volatile-lru (not allkeys-lru): only evicts keys WITH a TTL. LiteLLM's response
+    # cache keys all have TTLs so they remain evictable under memory pressure, while
+    # OpenWebUI's no-TTL state keys (session_pool WebSocket state, models cache) are
+    # protected — allkeys-lru could evict those and break streaming/model lists.
+    command: ["redis-server", "--appendonly", "no", "--save", "", "--maxmemory", "256mb", "--maxmemory-policy", "volatile-lru", "--timeout", "1800", "--maxclients", "10000"]
     volumes:
       - ./data/redis:/data
     healthcheck:
@@ -215,9 +219,24 @@ services:
 
   # Apache Tika - Document parsing for RAG/file uploads
   tika:
-    image: apache/tika:latest-full
+    image: apache/tika:3.3.1.0-full
     container_name: chat-tika
     restart: unless-stopped
+    # tika-config.xml sets the forked parser JVM's heap to 1G explicitly. Without it,
+    # the JVM sizes heap at 25% of the container limit (512M under a 2G cap), which
+    # makes large file uploads fail. 1G heap + native overhead fits inside 2G.
+    command: ["-c", "/tika-config.xml"]
+    volumes:
+      - ./tika/tika-config.xml:/tika-config.xml:ro
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:9998/ || exit 1"]
       interval: 30s
@@ -255,6 +274,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     networks:
       - chat-network
 
@@ -295,6 +319,11 @@ services:
       - AUTOHEAL_INTERVAL=30
       - AUTOHEAL_START_PERIOD=60
       - DOCKER_SOCK=/var/run/docker.sock
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 

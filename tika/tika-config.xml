@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sets the forked parser JVM's heap explicitly. Without this, the JVM sizes heap
+  at 25% of the container memory limit (512M under our 2G cap), which is how large
+  file uploads failed before. 1G heap + native overhead fits well inside the 2G cap.
+-->
+<properties>
+  <server>
+    <params>
+      <port>9998</port>
+      <host>0.0.0.0</host>
+      <forkedJvmArgs>
+        <arg>-Xmx1g</arg>
+      </forkedJvmArgs>
+    </params>
+  </server>
+</properties>
