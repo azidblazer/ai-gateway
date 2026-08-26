@@ -1,0 +1,73 @@
+# ── LiteLLM Manager — Apache Security Configuration ─────────────────────────
+
+# Disable directory listings
+Options -Indexes -MultiViews
+
+# ── Deny direct access to sensitive files ────────────────────────────────────
+<FilesMatch "^(config\.php|composer\.(json|lock)|\.env)$">
+    Order deny,allow
+    Deny from all
+</FilesMatch>
+
+<Files ".htaccess">
+    Order deny,allow
+    Deny from all
+</Files>
+
+# Protect the includes/ and data/ directories
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block access to includes/ and data/
+    RewriteRule ^(includes|data)/ - [F,L]
+
+    # Force HTTPS (uncomment after SSL is confirmed working)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# ── Security Headers ─────────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+    # Anti-clickjacking
+    Header always set X-Frame-Options "DENY"
+
+    # Prevent MIME-type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Strict-Transport-Security (enable after SSL)
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+    # Referrer policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Permissions policy
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+
+    # Content Security Policy
+    Header always set Content-Security-Policy "\
+default-src 'self'; \
+script-src 'self' https://ajax.googleapis.com https://cdn.jsdelivr.net; \
+style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; \
+img-src 'self' https://i.slcc.edu data: https:; \
+font-src 'self' https://cdn.jsdelivr.net; \
+connect-src 'self'; \
+frame-ancestors 'none'; \
+form-action 'self'; \
+base-uri 'self';"
+
+    # Remove server fingerprinting
+    Header always unset X-Powered-By
+    Header always unset Server
+</IfModule>
+
+# ── PHP hardening via .htaccess ───────────────────────────────────────────────
+<IfModule mod_php8.c>
+    php_flag  display_errors          off
+    php_flag  log_errors              on
+    php_flag  session.cookie_httponly on
+    php_flag  session.cookie_secure   on
+    php_flag  session.use_strict_mode on
+    php_flag  session.use_only_cookies on
+    php_value session.gc_maxlifetime  1800
+    php_value session.cookie_samesite Strict
+</IfModule>

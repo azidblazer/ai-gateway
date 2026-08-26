@@ -344,6 +344,42 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
+  #allows you to manage the LiteLLM budgets and download a CSV of spending.
+  litellmManager:
+    image: php:8.4-apache
+    container_name: chat-litellmManager
+    restart: unless-stopped
+    depends_on:
+      litellm:
+        condition: service_healthy
+    environment:
+      - LITELLM_DOMAIN=${LITELLM_DOMAIN}
+      - LITELLMMANAGER_DOMAIN=${LITELLMMANAGER_DOMAIN}
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - MICROSOFT_TENANT_ID=${MICROSOFT_TENANT_ID}
+      - ENABLE_OAUTH_SIGNUP=true
+      - LITELLMMANAGER_ADMIN_USER=${LITELLMMANAGER_ADMIN_USER}
+      - LITELLMMANAGER_ADMIN_PASSWORD=${LITELLMMANAGER_ADMIN_PASSWORD}
+      - LITELLMMANAGER_AUTH_MODE=${LITELLMMANAGER_AUTH_MODE}
+      - LITELLMMANAGER_OAUTH_REDIRECT_URI=${LITELLMMANAGER_OAUTH_REDIRECT_URI}
+      - LITELLMMANAGER_ADMIN_ROLE=${LITELLMMANAGER_ADMIN_ROLE}
+      - LITELLMMANAGER_HELPDESK_ROLE=${LITELLMMANAGER_HELPDESK_ROLE}
+      - LITELLMMANAGER_USER_ROLE=${LITELLMMANAGER_USER_ROLE}
+      - LITELLMMANAGER_LOGO_URL=${LITELLMMANAGER_LOGO_URL}
+      - LITELLMMANAGER_AUTH_HEADER=${LITELLMMANAGER_AUTH_HEADER}
+      - LITELLMMANAGER_SESSION_LIFETIME=${LITELLMMANAGER_SESSION_LIFETIME}
+    volumes:
+      - ./php:/var/www/html:ro
+    networks:
+      - chat-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 networks:
   chat-network:
     driver: bridge
